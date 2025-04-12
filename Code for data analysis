@@ -1,0 +1,113 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy.stats import zscore
+
+# Load your dataset
+df = pd.read_csv("Global_Landslide_Catalog_Export.csv")
+
+# 1. Data Cleaning and Pre-processing
+df['event_date'] = pd.to_datetime(df['event_date'], errors='coerce')
+df['fatality_count'] = df['fatality_count'].fillna(0)
+df['injury_count'] = df['injury_count'].fillna(0)
+df['year'] = df['event_date'].dt.year
+df = df.dropna(subset=['event_date'])
+
+# 2. Landslide Frequency Analysis
+freq_by_year = df['year'].value_counts().sort_index()
+avg_freq = freq_by_year.mean()
+
+# 3. Impact Analysis
+impact_by_year = df.groupby('year')[['fatality_count', 'injury_count']].sum()
+avg_fatalities = impact_by_year['fatality_count'].mean()
+avg_injuries = impact_by_year['injury_count'].mean()
+
+# 4. Geospatial Analysis (scatterplot-style)
+# 5. Cause and Effect Analysis
+trigger_impact = df.groupby('landslide_trigger')[['fatality_count', 'injury_count']].mean().sort_values(by='fatality_count', ascending=False)
+
+# 6. Relationship between Frequency and Impact
+merged_data = freq_by_year.to_frame(name='frequency').join(impact_by_year)
+
+# 7. Outlier Detection (Z-score)
+df['z_fatalities'] = zscore(df['fatality_count'])
+df['z_injuries'] = zscore(df['injury_count'])
+outliers = df[(df['z_fatalities'].abs() > 3) | (df['z_injuries'].abs() > 3)]
+
+# ------------------ Visualization ------------------
+sns.set(style="whitegrid")
+plt.figure(figsize=(22, 24))
+
+# Plot 1 - Landslide Frequency Over Years
+plt.subplot(4, 2, 1)
+sns.lineplot(x=freq_by_year.index, y=freq_by_year.values)
+plt.axhline(avg_freq, color='red', linestyle='--', label='Average')
+plt.title("1. Landslide Frequency Over Years")
+plt.ylabel("Frequency")
+plt.legend()
+
+# Plot 2 - Impact Analysis (Fatalities & Injuries)
+plt.subplot(4, 2, 2)
+sns.lineplot(data=impact_by_year)
+plt.axhline(avg_fatalities, color='red', linestyle='--', label='Avg Fatalities')
+plt.axhline(avg_injuries, color='green', linestyle='--', label='Avg Injuries')
+plt.title("2. Impact Analysis (Fatalities and Injuries)")
+plt.ylabel("Count")
+plt.legend()
+
+# Plot 3 - Geospatial Distribution
+plt.subplot(4, 2, 3)
+sns.scatterplot(data=df, x='longitude', y='latitude', hue='fatality_count', size='injury_count',
+                sizes=(10, 200), palette='Reds', alpha=0.6, legend=False)
+plt.title("3. Geospatial Distribution of Landslides")
+plt.xlabel("Longitude")
+plt.ylabel("Latitude")
+
+# Plot 4 - Trigger vs Average Impact
+plt.subplot(4, 2, 4)
+trigger_impact.plot(kind='bar', ax=plt.gca())
+plt.title("4. Average Impact by Landslide Trigger")
+plt.ylabel("Average Count")
+
+# Plot 5 - Frequency vs Impact
+plt.subplot(4, 2, 5)
+sns.scatterplot(data=merged_data, x='frequency', y='fatality_count', label='Fatalities')
+sns.scatterplot(data=merged_data, x='frequency', y='injury_count', label='Injuries')
+plt.axhline(avg_fatalities, color='red', linestyle='--')
+plt.axhline(avg_injuries, color='green', linestyle='--')
+plt.title("5. Frequency vs Fatalities and Injuries")
+plt.xlabel("Frequency")
+plt.ylabel("Impact")
+plt.legend()
+
+# Plot 6 - Outliers Detected
+plt.subplot(4, 2, 6)
+sns.scatterplot(data=outliers, x='event_date', y='fatality_count', color='red', label='Fatality Outliers')
+sns.scatterplot(data=outliers, x='event_date', y='injury_count', color='blue', label='Injury Outliers')
+plt.title("6. Outliers in Fatalities & Injuries (Z-Score)")
+plt.xlabel("Date")
+plt.ylabel("Count")
+plt.legend()
+
+# Plot 7 - Gradient Line Plot (Frequency with color)
+plt.subplot(4, 2, 7)
+gradient_data = pd.DataFrame({
+    'year': freq_by_year.index,
+    'frequency': freq_by_year.values
+})
+gradient_data['color'] = pd.cut(gradient_data['frequency'], bins=5, labels=sns.color_palette("coolwarm", 5).as_hex())
+for i in range(1, len(gradient_data)):
+    plt.plot(
+        gradient_data['year'].iloc[i-1:i+1],
+        gradient_data['frequency'].iloc[i-1:i+1],
+        color=gradient_data['color'].iloc[i],
+        linewidth=4
+    )
+plt.axhline(avg_freq, color='black', linestyle='--', label='Average')
+plt.title("7. Gradient Line: Landslide Frequency Over Time")
+plt.ylabel("Frequency")
+plt.legend()
+
+plt.tight_layout()
+plt.show()
