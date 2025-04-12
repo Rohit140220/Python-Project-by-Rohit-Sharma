@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import zscore
 
 # Load your dataset
-df = pd.read_csv("Global_Landslide_Catalog_Export.csv")
+df = pd.read_csv("C:/Users/Rohit Sharma/Downloads/Global_Landslide_Catalog_Export.csv")
 
 # 1. Data Cleaning and Pre-processing
 df['event_date'] = pd.to_datetime(df['event_date'], errors='coerce')
