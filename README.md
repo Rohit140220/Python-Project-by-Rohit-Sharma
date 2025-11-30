@@ -13,9 +13,7 @@ Handled missing values, standardized formats, and extracted features like year a
 Landslide Frequency Analysis
 
 Examined how landslide occurrences vary over time and identified peak years/seasons.
-
 Impact Analysis (Fatalities & Injuries)
-
 Evaluated the human impact by analyzing trends in fatalities and injuries over the years.
 
 Geospatial Analysis
